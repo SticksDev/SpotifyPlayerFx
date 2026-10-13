@@ -56,6 +56,7 @@ internal static partial class Program
     {
         LoadSettings();
         string? mode = null;
+        int after = 0;
         for (int i = 0; i < args.Length; i++)
         {
             switch (args[i])
@@ -65,6 +66,7 @@ internal static partial class Program
                 case "--log" when i + 1 < args.Length: logPath = args[++i]; break;
                 case "--repo" when i + 1 < args.Length: settings.repo = args[++i]; break;
                 case "--resident": mode = "resident"; break;
+                case "--after" when i + 1 < args.Length && int.TryParse(args[++i], out var pid): after = pid; break;
                 case "--install": mode = "install"; break;
                 case "--uninstall": mode = "uninstall"; break;
                 case "--version": Say($"Player FX companion {Version()}"); return 0;
@@ -81,12 +83,20 @@ internal static partial class Program
         if (mode == "install") return Install(here);
         if (mode == "uninstall") return Uninstall();
 
+        // Started by the updater: let the old version exit and free the mutex.
+        if (after != 0)
+        {
+            try { Process.GetProcessById(after).WaitForExit(10_000); }
+            catch (ArgumentException) { } // already gone
+        }
+
         using var mutex = new Mutex(true, MutexName, out bool first);
         if (!first)
         {
             Log("another instance is running; exiting");
             return 0;
         }
+        try { File.Delete(InstalledExe + ".old"); } catch { } // left by the last update
 
         Log($"Player FX companion {Version()} starting (pid {Environment.ProcessId}, port {settings.port}, capture {(captureEnabled ? "on" : "off")})");
         new Thread(() => ServeAsync(cts.Token).GetAwaiter().GetResult()) { IsBackground = true, Name = "server" }.Start();

@@ -89,16 +89,27 @@ internal static partial class Program
                 await res.Content.CopyToAsync(fs);
             }
             updateState = "restarting";
-            Log("download complete; swapping in and restarting");
-            // The running exe can't be replaced, so a detached shell waits for
-            // this process to exit, swaps the file and starts the new one.
-            int pid = Environment.ProcessId;
-            var script =
-                "/c ping 127.0.0.1 -n 2 >nul & " +
-                $":wait & tasklist /FI \"PID eq {pid}\" | find \"{pid}\" >nul && (ping 127.0.0.1 -n 2 >nul & goto wait) & " +
-                $"copy /y \"{tmp}\" \"{InstalledExe}\" >nul & del /q \"{tmp}\" & start \"\" \"{InstalledExe}\" --resident";
-            Process.Start(new ProcessStartInfo("cmd.exe", script) { UseShellExecute = false, CreateNoWindow = true });
-            await Task.Delay(500);
+            Log("download complete; restarting into the new version");
+            // A running exe can't be overwritten but can be renamed, so move
+            // this one aside and put the new one in its place. The new process
+            // waits for this one to exit before taking over.
+            var old = InstalledExe + ".old";
+            File.Delete(old);
+            File.Move(InstalledExe, old);
+            try
+            {
+                File.Move(tmp, InstalledExe);
+            }
+            catch
+            {
+                File.Move(old, InstalledExe);
+                throw;
+            }
+            Process.Start(new ProcessStartInfo(InstalledExe, $"--resident --after {Environment.ProcessId}")
+            {
+                UseShellExecute = false,
+                WorkingDirectory = InstallDir,
+            });
             Quit("restarting for update to " + latest);
         }
         catch (Exception ex)
