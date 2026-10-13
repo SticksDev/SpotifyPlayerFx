@@ -1,6 +1,6 @@
 {
   "name": "spotify-playerfx",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "private": true,
   "description": "Winamp-style visualizers behind Spotify's player bar, for Spicetify",
   "type": "module",

@@ -275,7 +275,7 @@ internal static partial class Program
             clients = clientCount,
             installDir = InstallDir,
             logPath,
-            repo = settings.repo,
+            repo = Repo,
             updateState,
         });
     }

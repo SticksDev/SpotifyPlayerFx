@@ -41,7 +41,8 @@ internal static partial class Program
         public int port { get; set; } = DefaultPort;
         public bool captureEnabled { get; set; } = true;
         public bool autoGain { get; set; } = true;
-        public string repo { get; set; } = DefaultRepo;
+        // Only set by --repo; otherwise installs follow DefaultRepo.
+        public string? repo { get; set; }
         // Pages allowed to use the API. Spotify's renderer by default; edit
         // settings.json if a Spotify update moves it.
         public string[] allowedOrigins { get; set; } = ["https://xpui.app.spotify.com"];
@@ -94,6 +95,8 @@ internal static partial class Program
         Log("exiting");
         return 0;
     }
+
+    static string Repo => settings.repo ?? DefaultRepo;
 
     static bool IsInstalledCopy(string path) =>
         string.Equals(Path.GetFullPath(path), Path.GetFullPath(InstalledExe), StringComparison.OrdinalIgnoreCase);
@@ -179,7 +182,8 @@ internal static partial class Program
             settings = new Settings();
         }
         if (settings.port < 1024 || settings.port > 65535) settings.port = DefaultPort;
-        if (string.IsNullOrWhiteSpace(settings.repo)) settings.repo = DefaultRepo;
+        // Builds before 1.0 saved the default, including a placeholder, so treat that as unset.
+        if (string.IsNullOrWhiteSpace(settings.repo) || settings.repo.StartsWith("OWNER/")) settings.repo = null;
         settings.allowedOrigins ??= new Settings().allowedOrigins;
     }
 
@@ -188,7 +192,11 @@ internal static partial class Program
         try
         {
             Directory.CreateDirectory(InstallDir);
-            File.WriteAllText(SettingsPath, JsonSerializer.Serialize(settings, new JsonSerializerOptions { WriteIndented = true }));
+            File.WriteAllText(SettingsPath, JsonSerializer.Serialize(settings, new JsonSerializerOptions
+            {
+                WriteIndented = true,
+                DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull,
+            }));
         }
         catch (Exception ex)
         {

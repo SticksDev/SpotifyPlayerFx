@@ -13,7 +13,7 @@ internal static partial class Program
 
     static async Task<(string latest, string? url, string? notes)> FetchLatestAsync()
     {
-        using var req = new HttpRequestMessage(HttpMethod.Get, $"https://api.github.com/repos/{settings.repo}/releases/latest");
+        using var req = new HttpRequestMessage(HttpMethod.Get, $"https://api.github.com/repos/{Repo}/releases/latest");
         req.Headers.UserAgent.ParseAdd("PlayerFxCompanion/" + Version());
         req.Headers.Accept.ParseAdd("application/vnd.github+json");
         using var res = await http.SendAsync(req);
@@ -41,12 +41,12 @@ internal static partial class Program
                 available = IsNewer(latest, Version()) && url != null,
                 url,
                 notes = notes?.Length > 1500 ? notes[..1500] : notes,
-                repo = settings.repo,
+                repo = Repo,
             });
         }
         catch (Exception ex)
         {
-            return JsonSerializer.Serialize(new { current = Version(), error = ex.Message, repo = settings.repo });
+            return JsonSerializer.Serialize(new { current = Version(), error = ex.Message, repo = Repo });
         }
     }
 
