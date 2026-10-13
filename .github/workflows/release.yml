@@ -1,0 +1,61 @@
+name: Release
+
+# Push a tag like v1.2.3 to build the companion exe and the Spicetify bundle
+# and attach both to a GitHub release. The companion's updater and the
+# page's download button read the latest release.
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+
+      - name: Version from tag
+        id: v
+        shell: pwsh
+        run: |
+          $v = "${{ github.ref_name }}".TrimStart("v")
+          "version=$v" >> $env:GITHUB_OUTPUT
+
+      - name: Build the extension and page
+        shell: pwsh
+        run: |
+          npm ci
+          npm run typecheck
+          npm run build
+          New-Item -ItemType Directory out -Force | Out-Null
+          New-Item -ItemType Directory stage -Force | Out-Null
+          Copy-Item dist stage/dist -Recurse
+          Copy-Item install.ps1, LICENSE stage/
+          Compress-Archive -Path stage/* -DestinationPath out/playerfx-spicetify.zip
+
+      - name: Publish the companion
+        shell: pwsh
+        run: |
+          dotnet publish companion/PlayerFxCompanion.csproj -c Release -r win-x64 --self-contained true `
+            -p:PublishSingleFile=true -p:Version=${{ steps.v.outputs.version }} -o out --nologo
+          Get-ChildItem out
+
+      - name: Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            out/PlayerFxCompanion.exe
+            out/playerfx-spicetify.zip
+          generate_release_notes: true

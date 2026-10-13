@@ -1,0 +1,7 @@
+{
+  "name": "Player FX",
+  "icon": "<svg viewBox=\"0 0 24 24\" fill=\"currentColor\"><path d=\"M3 13h2v6H3v-6Zm4-5h2v11H7V8Zm4 3h2v8h-2v-8Zm4-7h2v15h-2V4Zm4 5h2v10h-2V9Z\"/></svg>",
+  "active-icon": "<svg viewBox=\"0 0 24 24\" fill=\"currentColor\"><path d=\"M3 13h2v6H3v-6Zm4-5h2v11H7V8Zm4 3h2v8h-2v-8Zm4-7h2v15h-2V4Zm4 5h2v10h-2V9Z\"/></svg>",
+  "subfiles": [],
+  "subfiles_extension": []
+}
